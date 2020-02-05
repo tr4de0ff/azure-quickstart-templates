@@ -62,7 +62,7 @@ fi
 
 #Script Parameters
 CLUSTER_NAME="es-azure"
-ES_VERSION="5.1.2"
+ES_VERSION="5.6.1"
 IS_DATA_NODE=1
 
 #Loop through options passed
@@ -115,6 +115,44 @@ install_java()
 
     tar xzf jdk-8u201-linux-x64.tar.gz -C /var/lib
     export JAVA_HOME=/var/lib/jdk1.8.0_201
+    export PATH=$PATH:$JAVA_HOME/bin
+    log "JAVA_HOME: $JAVA_HOME"
+    log "PATH: $PATH"
+
+    java -version
+    if [ $? -ne 0 ]; then
+        log "Java installation failed"
+        exit 1
+    fi
+}
+
+install_java_azul()
+{
+    if [ -f "zulu8.44.0.11-ca-jdk8.0.242-linux_x64.tar.gz" ];
+    then
+        log "Java already downloaded"
+#        return
+    fi
+
+    log "Installing Java"
+    RETRY=0
+    MAX_RETRY=5
+    while [ $RETRY -lt $MAX_RETRY ]; do
+        log "Retry $RETRY: downloading zulu8.44.0.11-ca-jdk8.0.242-linux_x64.tar.gz"
+        wget https://cdn.azul.com/zulu/bin/zulu8.44.0.11-ca-jdk8.0.242-linux_x64.tar.gz
+        if [ $? -ne 0 ]; then
+            let RETRY=RETRY+1
+        else
+            break
+        fi
+    done
+    if [ $RETRY -eq $MAX_RETRY ]; then
+        log "Failed to download zulu8.44.0.11-ca-jdk8.0.242-linux_x64.tar.gz"
+        exit 1
+    fi
+
+    tar xzf zulu8.44.0.11-ca-jdk8.0.242-linux_x64.tar.gz -C /var/lib
+    export JAVA_HOME=/var/lib/zulu8.44.0.11-ca-jdk8.0.242-linux_x64
     export PATH=$PATH:$JAVA_HOME/bin
     log "JAVA_HOME: $JAVA_HOME"
     log "PATH: $PATH"
@@ -247,7 +285,8 @@ start_service()
 
 log "starting elasticsearch setup"
 
-install_java
+#install_java
+install_java_azul
 install_es
 configure_es
 configure_system
